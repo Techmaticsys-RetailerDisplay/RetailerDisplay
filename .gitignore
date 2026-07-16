@@ -1,0 +1,27 @@
+# ---- .NET ----
+bin/
+obj/
+*.user
+*.suo
+.vs/
+artifacts/
+[Dd]ebug/
+[Rr]elease/
+TestResults/
+
+# ---- Node / React (web) ----
+web/node_modules/
+web/dist/
+web/.env.local
+web/*.log
+npm-debug.log*
+
+# ---- Env & secrets ----
+*.env.local
+appsettings.*.local.json
+
+# ---- OS / editor ----
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
