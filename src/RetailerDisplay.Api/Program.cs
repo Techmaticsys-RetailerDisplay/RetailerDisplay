@@ -83,11 +83,8 @@ static WebApplication app_configured(WebApplication app)
 {
     app.UseMiddleware<ExceptionHandlingMiddleware>();
 
-    if (app.Environment.IsDevelopment())
-    {
-        app.UseSwagger();
-        app.UseSwaggerUI();
-    }
+    app.UseSwagger();
+    app.UseSwaggerUI();
 
     // Serve the built React app (copied into wwwroot in the container).
     app.UseDefaultFiles();
