@@ -12,7 +12,9 @@ public record ContentDto(
     int? DurationSeconds,
     int Version,
     bool IsActive,
-    IReadOnlyList<ContentProductDto>? Products);
+    IReadOnlyList<ContentProductDto>? Products,
+    string? ThumbnailUrl,
+    string? PreviewUrl);
 
 public record ContentProductDto(long StoreProductId, string ProductName, decimal Price, string? ImageUrl, int SortOrder);
 

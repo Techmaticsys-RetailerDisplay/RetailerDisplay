@@ -43,6 +43,35 @@ public class JwtTokenService : IJwtTokenService
         return (new JwtSecurityTokenHandler().WriteToken(jwt), expiresAt);
     }
 
+    public (string token, DateTime expiresAt) CreateAdminAccessToken(AdminUser admin)
+    {
+        var key = _config["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key is not configured.");
+        var minutes = int.TryParse(_config["Jwt:AccessTokenMinutes"], out var m) ? m : 30;
+        var expiresAt = DateTime.UtcNow.AddMinutes(Math.Max(minutes, 120));
+
+        var claims = new[]
+        {
+            new Claim(JwtRegisteredClaimNames.Sub, admin.AdminUserId.ToString()),
+            new Claim(JwtRegisteredClaimNames.Email, admin.Email),
+            new Claim("adminId", admin.AdminUserId.ToString()),
+            new Claim(ClaimTypes.Role, "Admin"),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+        };
+
+        var creds = new SigningCredentials(
+            new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),
+            SecurityAlgorithms.HmacSha256);
+
+        var jwt = new JwtSecurityToken(
+            issuer: _config["Jwt:Issuer"],
+            audience: _config["Jwt:Audience"],
+            claims: claims,
+            expires: expiresAt,
+            signingCredentials: creds);
+
+        return (new JwtSecurityTokenHandler().WriteToken(jwt), expiresAt);
+    }
+
     public (string rawToken, string tokenHash, DateTime expiresAt) CreateRefreshToken()
     {
         var days = int.TryParse(_config["Jwt:RefreshTokenDays"], out var d) ? d : 30;

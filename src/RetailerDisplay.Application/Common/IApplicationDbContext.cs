@@ -21,6 +21,7 @@ public interface IApplicationDbContext
     DbSet<PlaylistItem> PlaylistItems { get; }
     DbSet<Device> Devices { get; }
     DbSet<DeviceStatusLog> DeviceStatusLogs { get; }
+    DbSet<AdminUser> AdminUsers { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

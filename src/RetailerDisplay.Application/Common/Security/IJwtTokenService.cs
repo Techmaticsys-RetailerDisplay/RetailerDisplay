@@ -8,6 +8,9 @@ public interface IJwtTokenService
     /// <summary>Creates a signed access token for the retailer.</summary>
     (string token, DateTime expiresAt) CreateAccessToken(Retailer retailer);
 
+    /// <summary>Creates a signed access token for an admin (carries the Admin role claim).</summary>
+    (string token, DateTime expiresAt) CreateAdminAccessToken(AdminUser admin);
+
     /// <summary>Generates a new random refresh token (raw value) plus its stored hash and expiry.</summary>
     (string rawToken, string tokenHash, DateTime expiresAt) CreateRefreshToken();
 

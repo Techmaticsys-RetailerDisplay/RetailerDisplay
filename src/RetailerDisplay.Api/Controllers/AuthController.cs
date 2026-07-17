@@ -18,11 +18,6 @@ public class AuthController : ControllerBase
         _currentUser = currentUser;
     }
 
-    /// <summary>Provisional self-registration (may move behind Admin later).</summary>
-    [HttpPost("register")]
-    public async Task<ActionResult<AuthResponse>> Register(RegisterRequest request, CancellationToken ct)
-        => Ok(await _auth.RegisterAsync(request, ct));
-
     [HttpPost("login")]
     public async Task<ActionResult<AuthResponse>> Login(LoginRequest request, CancellationToken ct)
         => Ok(await _auth.LoginAsync(request, ct));
@@ -42,4 +37,14 @@ public class AuthController : ControllerBase
     [HttpGet("me")]
     public async Task<ActionResult<RetailerProfile>> Me(CancellationToken ct)
         => Ok(await _auth.GetProfileAsync(_currentUser.RequireRetailerId(), ct));
+
+    [Authorize]
+    [HttpGet("profile")]
+    public async Task<ActionResult<RetailerProfile>> GetProfile(CancellationToken ct)
+        => Ok(await _auth.GetProfileAsync(_currentUser.RequireRetailerId(), ct));
+
+    [Authorize]
+    [HttpPut("profile")]
+    public async Task<ActionResult<RetailerProfile>> UpdateProfile(UpdateProfileRequest request, CancellationToken ct)
+        => Ok(await _auth.UpdateProfileAsync(_currentUser.RequireRetailerId(), request, ct));
 }

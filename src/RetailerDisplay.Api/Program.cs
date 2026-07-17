@@ -1,5 +1,6 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using RetailerDisplay.Api.Common;
 using RetailerDisplay.Application;
@@ -50,22 +51,57 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
-// --- Pipeline ---
-app.UseMiddleware<ExceptionHandlingMiddleware>();
+app_configured(app);
 
-if (app.Environment.IsDevelopment())
+// --- Migrate DB + seed admin on startup (idempotent) ---
+using (var scope = app.Services.CreateScope())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    var db = scope.ServiceProvider.GetRequiredService<RetailerDisplay.Infrastructure.Persistence.RetailerDisplayDbContext>();
+    db.Database.Migrate();
+
+    var hasher = scope.ServiceProvider.GetRequiredService<RetailerDisplay.Application.Common.Security.IPasswordHasher>();
+
+    if (app.Environment.IsDevelopment())
+    {
+        await RetailerDisplay.Infrastructure.Persistence.DbSeeder.EnsureDefaultAdminAsync(db, hasher, "admin@bottlecapps.com", "Admin#2026!");
+        await RetailerDisplay.Infrastructure.Persistence.DbSeeder.EnsureDefaultAdminAsync(db, hasher, "anand.ch2@gmail.com", "Anand#2026!");
+    }
+
+    // Production: seed the first admin from configuration (SeedAdmin section or env var) if provided.
+    var seedEmail = app.Configuration["SeedAdmin:Email"];
+    var seedPassword = app.Configuration["SeedAdmin:Password"];
+    if (!string.IsNullOrWhiteSpace(seedEmail) && !string.IsNullOrWhiteSpace(seedPassword))
+        await RetailerDisplay.Infrastructure.Persistence.DbSeeder.EnsureDefaultAdminAsync(db, hasher, seedEmail, seedPassword);
+
+    await RetailerDisplay.Infrastructure.Persistence.DbSeeder.EnsureDefaultStoresAsync(db);
 }
 
-app.UseHttpsRedirection();
-app.UseCors("web");
-app.UseAuthentication();
-app.UseAuthorization();
-app.MapControllers();
-
-app.MapGet("/health", () => Results.Ok(new { status = "ok", service = "RetailerDisplay.Api" }))
-   .WithName("Health");
-
 app.Run();
+
+// Configures the middleware pipeline (kept as a local function so startup reads top-to-bottom).
+static WebApplication app_configured(WebApplication app)
+{
+    app.UseMiddleware<ExceptionHandlingMiddleware>();
+
+    if (app.Environment.IsDevelopment())
+    {
+        app.UseSwagger();
+        app.UseSwaggerUI();
+    }
+
+    // Serve the built React app (copied into wwwroot in the container).
+    app.UseDefaultFiles();
+    app.UseStaticFiles();
+
+    app.UseCors("web");
+    app.UseAuthentication();
+    app.UseAuthorization();
+    app.MapControllers();
+
+    app.MapGet("/health", () => Results.Ok(new { status = "ok", service = "RetailerDisplay.Api" })).WithName("Health");
+
+    // SPA fallback: client-side routes (/login, /admin, …) return index.html.
+    app.MapFallbackToFile("index.html");
+
+    return app;
+}

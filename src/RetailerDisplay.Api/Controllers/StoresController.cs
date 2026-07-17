@@ -29,18 +29,9 @@ public class StoresController : ControllerBase
     public async Task<ActionResult<StoreDto>> Get(long id, CancellationToken ct)
         => Ok(await _stores.GetAsync(RetailerId, id, ct));
 
-    [HttpPost]
-    public async Task<ActionResult<StoreDto>> Create(CreateStoreRequest request, CancellationToken ct)
-        => Ok(await _stores.CreateAsync(RetailerId, request, ct));
-
+    // Retailers can view (and edit details of) their stores, but not create or remove them —
+    // stores are provisioned for the account (auto-default now, admin-managed later).
     [HttpPut("{id:long}")]
     public async Task<ActionResult<StoreDto>> Update(long id, UpdateStoreRequest request, CancellationToken ct)
         => Ok(await _stores.UpdateAsync(RetailerId, id, request, ct));
-
-    [HttpDelete("{id:long}")]
-    public async Task<IActionResult> Deactivate(long id, CancellationToken ct)
-    {
-        await _stores.DeactivateAsync(RetailerId, id, ct);
-        return NoContent();
-    }
 }

@@ -32,22 +32,33 @@ public static class DependencyInjection
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddSingleton<IDeviceKeyGenerator, DeviceKeyGenerator>();
 
-        // Object storage (S3 / MinIO)
-        services.Configure<S3Options>(configuration.GetSection("S3"));
-        services.AddSingleton<IAmazonS3>(sp =>
-        {
-            var o = sp.GetRequiredService<IOptions<S3Options>>().Value;
-            var config = new AmazonS3Config { ForcePathStyle = o.ForcePathStyle };
-            if (!string.IsNullOrWhiteSpace(o.ServiceUrl))
-                config.ServiceURL = o.ServiceUrl;
-            else
-                config.RegionEndpoint = Amazon.RegionEndpoint.GetBySystemName(o.Region);
+        // Object storage — Local (dev, files on disk) or S3/MinIO.
+        services.Configure<MediaOptions>(configuration.GetSection("Media"));
+        var mediaProvider = configuration["Media:Provider"];
 
-            return !string.IsNullOrWhiteSpace(o.AccessKey)
-                ? new AmazonS3Client(new BasicAWSCredentials(o.AccessKey, o.SecretKey), config)
-                : new AmazonS3Client(config);
-        });
-        services.AddScoped<IMediaStorage, S3MediaStorage>();
+        if (string.Equals(mediaProvider, "Local", StringComparison.OrdinalIgnoreCase))
+        {
+            services.AddScoped<IMediaStorage, LocalMediaStorage>();
+        }
+        else
+        {
+            services.Configure<S3Options>(configuration.GetSection("S3"));
+            services.AddSingleton<IAmazonS3>(sp =>
+            {
+                var o = sp.GetRequiredService<IOptions<S3Options>>().Value;
+                var config = new AmazonS3Config { ForcePathStyle = o.ForcePathStyle };
+                if (!string.IsNullOrWhiteSpace(o.ServiceUrl))
+                    config.ServiceURL = o.ServiceUrl;
+                else
+                    config.RegionEndpoint = Amazon.RegionEndpoint.GetBySystemName(o.Region);
+
+                return !string.IsNullOrWhiteSpace(o.AccessKey)
+                    ? new AmazonS3Client(new BasicAWSCredentials(o.AccessKey, o.SecretKey), config)
+                    : new AmazonS3Client(config);
+            });
+            services.AddScoped<IMediaStorage, S3MediaStorage>();
+        }
+
         services.AddSingleton<IImageProcessor, ImageSharpImageProcessor>();
 
         services.AddSingleton<Application.Catalog.ICsvProductImporter, Catalog.CsvProductImporter>();

@@ -38,6 +38,33 @@ public class MediaService : IMediaService
         return new UploadUrlResponse(presigned.Url, presigned.Key, presigned.ExpiresAt);
     }
 
+    public async Task<UploadedMedia> UploadAsync(long retailerId, MediaUploadKind kind, string fileName, string contentType, long sizeBytes, Stream content, CancellationToken ct = default)
+    {
+        contentType = contentType.Trim().ToLowerInvariant();
+
+        string folder;
+        if (kind == MediaUploadKind.Image)
+        {
+            if (!MediaLimits.AllowedImageTypes.Contains(contentType))
+                throw new AppException("Unsupported image type. Allowed: JPEG, PNG, WebP.");
+            if (sizeBytes > MediaLimits.MaxImageBytes)
+                throw new AppException("Image exceeds the 2 MB limit.");
+            folder = "images";
+        }
+        else
+        {
+            if (!MediaLimits.AllowedVideoTypes.Contains(contentType))
+                throw new AppException("Unsupported video type. Allowed: MP4.");
+            if (sizeBytes > MediaLimits.MaxVideoBytes)
+                throw new AppException("Video exceeds the 20 MB limit.");
+            folder = "videos";
+        }
+
+        var key = $"{retailerId}/{folder}/{Guid.NewGuid():N}/{SanitizeFileName(fileName)}";
+        await _storage.SaveAsync(key, content, contentType, ct);
+        return new UploadedMedia(key, contentType, sizeBytes);
+    }
+
     private static string SanitizeFileName(string fileName)
     {
         var name = Path.GetFileName(fileName);

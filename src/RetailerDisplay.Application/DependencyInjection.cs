@@ -1,5 +1,6 @@
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
+using RetailerDisplay.Application.Admin;
 using RetailerDisplay.Application.Auth;
 using RetailerDisplay.Application.Catalog;
 using RetailerDisplay.Application.Content;
@@ -29,6 +30,8 @@ public static class DependencyInjection
         services.AddScoped<IDeviceService, DeviceService>();
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<IDeviceApiService, DeviceApiService>();
+        services.AddScoped<IAdminService, AdminService>();
+        services.AddScoped<Signage.ISignageService, Signage.SignageService>();
 
         return services;
     }

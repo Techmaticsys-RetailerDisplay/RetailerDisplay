@@ -9,6 +9,7 @@ interface AuthState {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
@@ -57,6 +58,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         tokenStore.clear();
         setRetailer(null);
+      },
+      refreshProfile: async () => {
+        const me = await authApi.me();
+        setRetailer(me);
       },
     }),
     [retailer, loading]

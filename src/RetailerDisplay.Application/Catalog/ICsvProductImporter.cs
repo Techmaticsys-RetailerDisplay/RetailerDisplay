@@ -23,5 +23,6 @@ public record ParsedProductRow(
 /// <summary>Parses a product CSV into typed rows with per-row validation. Implemented with CsvHelper.</summary>
 public interface ICsvProductImporter
 {
-    IReadOnlyList<ParsedProductRow> Parse(Stream csv);
+    /// <param name="requirePrice">Store imports require a valid Price; master imports don't.</param>
+    IReadOnlyList<ParsedProductRow> Parse(Stream csv, bool requirePrice = true);
 }

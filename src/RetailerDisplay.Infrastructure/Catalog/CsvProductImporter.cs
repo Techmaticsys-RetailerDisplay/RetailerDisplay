@@ -13,7 +13,7 @@ namespace RetailerDisplay.Infrastructure.Catalog;
 /// </summary>
 public class CsvProductImporter : ICsvProductImporter
 {
-    public IReadOnlyList<ParsedProductRow> Parse(Stream csv)
+    public IReadOnlyList<ParsedProductRow> Parse(Stream csv, bool requirePrice = true)
     {
         var results = new List<ParsedProductRow>();
         var config = new CsvConfiguration(CultureInfo.InvariantCulture)
@@ -47,7 +47,7 @@ public class CsvProductImporter : ICsvProductImporter
                 }
 
                 var price = OptDecimal(csvReader, "price");
-                if (price is null or < 0)
+                if (requirePrice && (price is null or < 0))
                 {
                     results.Add(Invalid(rowNumber, "Price is missing or invalid."));
                     continue;
@@ -65,7 +65,7 @@ public class CsvProductImporter : ICsvProductImporter
                     Opt(csvReader, "volume"),
                     OptInt(csvReader, "packsize"),
                     OptInt(csvReader, "vintage"),
-                    price.Value,
+                    price ?? 0m,
                     OptDecimal(csvReader, "saleprice"),
                     Opt(csvReader, "currency")));
             }

@@ -28,7 +28,9 @@ public class ContentService : IContentService
         var q = _db.Contents.Where(c => c.RetailerId == retailerId);
         if (type.HasValue) q = q.Where(c => c.ContentType == type.Value);
         var items = await q.OrderByDescending(c => c.ContentId).ToListAsync(ct);
-        return items.Select(c => Map(c, null)).ToList();
+        var result = new List<ContentDto>(items.Count);
+        foreach (var c in items) result.Add(await MapAsync(c, null, ct));
+        return result;
     }
 
     public async Task<ContentDto> GetAsync(long retailerId, long contentId, CancellationToken ct = default)
@@ -37,7 +39,7 @@ public class ContentService : IContentService
         List<ContentProductDto>? products = null;
         if (content.ContentType == ContentType.ProductList)
             products = await LoadProducts(contentId, ct);
-        return Map(content, products);
+        return await MapAsync(content, products, ct);
     }
 
     public async Task<ContentDto> CreateAsync(long retailerId, CreateContentRequest r, CancellationToken ct = default)
@@ -101,7 +103,7 @@ public class ContentService : IContentService
         content.Version += 1;
         content.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync(ct);
-        return Map(content, null);
+        return await MapAsync(content, null, ct);
     }
 
     public async Task SetProductsAsync(long retailerId, long contentId, SetContentProductsRequest r, CancellationToken ct = default)
@@ -197,7 +199,32 @@ public class ContentService : IContentService
     private static string Hash(string input)
         => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(input)))[..16].ToLowerInvariant();
 
-    private static ContentDto Map(Domain.Entities.Content c, List<ContentProductDto>? products) => new(
-        c.ContentId, c.ContentType.ToString(), c.Name, c.MasterKey, c.MediaVariants,
-        c.ThumbnailKey, c.DurationSeconds, c.Version, c.IsActive, products);
+    private async Task<ContentDto> MapAsync(Domain.Entities.Content c, List<ContentProductDto>? products, CancellationToken ct)
+    {
+        var expiry = TimeSpan.FromHours(6);
+        string? thumbUrl = null, previewUrl = null;
+
+        if (c.ContentType == ContentType.Image)
+        {
+            Dictionary<string, string>? variants = null;
+            if (!string.IsNullOrWhiteSpace(c.MediaVariants))
+                try { variants = JsonSerializer.Deserialize<Dictionary<string, string>>(c.MediaVariants); } catch { /* ignore */ }
+
+            var thumbKey = c.ThumbnailKey ?? variants?.GetValueOrDefault("thumb");
+            var previewKey = variants?.GetValueOrDefault("md") ?? variants?.GetValueOrDefault("lg")
+                ?? variants?.GetValueOrDefault("sm") ?? c.MasterKey;
+
+            if (thumbKey is not null) thumbUrl = await _storage.CreateDownloadUrlAsync(thumbKey, expiry, ct);
+            if (previewKey is not null) previewUrl = await _storage.CreateDownloadUrlAsync(previewKey, expiry, ct);
+        }
+        else if (c.ContentType == ContentType.Video)
+        {
+            if (c.ThumbnailKey is not null) thumbUrl = await _storage.CreateDownloadUrlAsync(c.ThumbnailKey, expiry, ct);
+            if (c.MasterKey is not null) previewUrl = await _storage.CreateDownloadUrlAsync(c.MasterKey, expiry, ct);
+        }
+
+        return new ContentDto(
+            c.ContentId, c.ContentType.ToString(), c.Name, c.MasterKey, c.MediaVariants,
+            c.ThumbnailKey, c.DurationSeconds, c.Version, c.IsActive, products, thumbUrl, previewUrl);
+    }
 }

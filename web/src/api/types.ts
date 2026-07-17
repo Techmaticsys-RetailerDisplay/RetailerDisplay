@@ -4,6 +4,25 @@ export interface RetailerProfile {
   businessName: string;
   contactName?: string | null;
   phone?: string | null;
+  addressLine1?: string | null;
+  addressLine2?: string | null;
+  city?: string | null;
+  state?: string | null;
+  postalCode?: string | null;
+  country?: string | null;
+  profileCompleted: boolean;
+}
+
+export interface UpdateProfileRequest {
+  businessName: string;
+  contactName?: string;
+  phone?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  country?: string;
 }
 
 export interface AuthResponse {
@@ -68,12 +87,38 @@ export interface Playlist {
   itemCount: number;
 }
 
+export interface PlaylistItem {
+  playlistItemId: number;
+  contentId: number;
+  contentName: string;
+  contentType: string;
+  sortOrder: number;
+  durationSeconds?: number | null;
+  fitMode: string;
+}
+
+export interface PlaylistDetail {
+  playlistId: number;
+  name: string;
+  version: number;
+  isActive: boolean;
+  items: PlaylistItem[];
+}
+
+export interface PlaylistItemInput {
+  contentId: number;
+  durationSeconds?: number | null;
+  fitMode: number; // 1 Contain, 2 Cover, 3 Stretch
+}
+
 export interface ContentItem {
   contentId: number;
   contentType: string;
   name: string;
   version: number;
   isActive: boolean;
+  thumbnailUrl?: string | null;
+  previewUrl?: string | null;
 }
 
 export interface Paged<T> {

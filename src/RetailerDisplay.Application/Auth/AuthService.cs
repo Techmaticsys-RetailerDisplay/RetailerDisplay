@@ -18,31 +18,6 @@ public class AuthService : IAuthService
         _tokens = tokens;
     }
 
-    public async Task<AuthResponse> RegisterAsync(RegisterRequest request, CancellationToken ct = default)
-    {
-        var email = request.Email.Trim().ToLowerInvariant();
-        var exists = await _db.Retailers.AnyAsync(r => r.Email == email, ct);
-        if (exists)
-            throw AppException.Conflict("An account with this email already exists.");
-
-        var now = DateTime.UtcNow;
-        var retailer = new Retailer
-        {
-            Email = email,
-            PasswordHash = _passwordHasher.Hash(request.Password),
-            BusinessName = request.BusinessName.Trim(),
-            ContactName = request.ContactName?.Trim(),
-            Phone = request.Phone?.Trim(),
-            IsActive = true,
-            CreatedAt = now,
-            UpdatedAt = now
-        };
-        _db.Retailers.Add(retailer);
-        await _db.SaveChangesAsync(ct);
-
-        return await IssueAsync(retailer, ct);
-    }
-
     public async Task<AuthResponse> LoginAsync(LoginRequest request, CancellationToken ct = default)
     {
         var email = request.Email.Trim().ToLowerInvariant();
@@ -88,6 +63,37 @@ public class AuthService : IAuthService
         return ToProfile(retailer);
     }
 
+    public async Task<RetailerProfile> UpdateProfileAsync(long retailerId, UpdateProfileRequest r, CancellationToken ct = default)
+    {
+        var retailer = await _db.Retailers.FirstOrDefaultAsync(x => x.RetailerId == retailerId, ct)
+            ?? throw AppException.NotFound("Retailer");
+
+        retailer.BusinessName = r.BusinessName.Trim();
+        retailer.ContactName = r.ContactName?.Trim();
+        retailer.Phone = r.Phone?.Trim();
+        retailer.AddressLine1 = r.AddressLine1?.Trim();
+        retailer.AddressLine2 = r.AddressLine2?.Trim();
+        retailer.City = r.City?.Trim();
+        retailer.State = r.State?.Trim();
+        retailer.PostalCode = r.PostalCode?.Trim();
+        retailer.Country = r.Country?.Trim();
+
+        // Required fields for a "complete" profile.
+        retailer.ProfileCompleted =
+            !string.IsNullOrWhiteSpace(retailer.BusinessName) &&
+            !string.IsNullOrWhiteSpace(retailer.ContactName) &&
+            !string.IsNullOrWhiteSpace(retailer.Phone) &&
+            !string.IsNullOrWhiteSpace(retailer.AddressLine1) &&
+            !string.IsNullOrWhiteSpace(retailer.City) &&
+            !string.IsNullOrWhiteSpace(retailer.State) &&
+            !string.IsNullOrWhiteSpace(retailer.PostalCode) &&
+            !string.IsNullOrWhiteSpace(retailer.Country);
+
+        retailer.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+        return ToProfile(retailer);
+    }
+
     private async Task<AuthResponse> IssueAsync(Retailer retailer, CancellationToken ct)
     {
         var (accessToken, accessExpires) = _tokens.CreateAccessToken(retailer);
@@ -106,5 +112,6 @@ public class AuthService : IAuthService
     }
 
     private static RetailerProfile ToProfile(Retailer r) =>
-        new(r.RetailerId, r.Email, r.BusinessName, r.ContactName, r.Phone);
+        new(r.RetailerId, r.Email, r.BusinessName, r.ContactName, r.Phone,
+            r.AddressLine1, r.AddressLine2, r.City, r.State, r.PostalCode, r.Country, r.ProfileCompleted);
 }

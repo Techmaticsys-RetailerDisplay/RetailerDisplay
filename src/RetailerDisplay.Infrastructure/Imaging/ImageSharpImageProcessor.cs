@@ -1,3 +1,4 @@
+using RetailerDisplay.Application.Common;
 using RetailerDisplay.Application.Common.Imaging;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Webp;
@@ -21,26 +22,38 @@ public class ImageSharpImageProcessor : IImageProcessor
 
     public async Task<IReadOnlyList<ImageRendition>> CreateRenditionsAsync(Stream source, CancellationToken ct = default)
     {
-        using var image = await Image.LoadAsync(source, ct);
-        var encoder = new WebpEncoder { Quality = 80 };
-        var renditions = new List<ImageRendition>(Targets.Length);
-
-        foreach (var (name, width) in Targets)
+        Image image;
+        try
         {
-            // Never upscale past the source width.
-            var effectiveWidth = Math.Min(width, image.Width);
-
-            using var clone = image.Clone(ctx => ctx.Resize(new ResizeOptions
-            {
-                Size = new Size(effectiveWidth, 0),
-                Mode = ResizeMode.Max
-            }));
-
-            using var ms = new MemoryStream();
-            await clone.SaveAsync(ms, encoder, ct);
-            renditions.Add(new ImageRendition(name, effectiveWidth, ms.ToArray()));
+            image = await Image.LoadAsync(source, ct);
+        }
+        catch (ImageFormatException)
+        {
+            throw new AppException("The uploaded file is not a valid image.", 400);
         }
 
-        return renditions;
+        using (image)
+        {
+            var encoder = new WebpEncoder { Quality = 80 };
+            var renditions = new List<ImageRendition>(Targets.Length);
+
+            foreach (var (name, width) in Targets)
+            {
+                // Never upscale past the source width.
+                var effectiveWidth = Math.Min(width, image.Width);
+
+                using var clone = image.Clone(ctx => ctx.Resize(new ResizeOptions
+                {
+                    Size = new Size(effectiveWidth, 0),
+                    Mode = ResizeMode.Max
+                }));
+
+                using var ms = new MemoryStream();
+                await clone.SaveAsync(ms, encoder, ct);
+                renditions.Add(new ImageRendition(name, effectiveWidth, ms.ToArray()));
+            }
+
+            return renditions;
+        }
     }
 }

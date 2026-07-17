@@ -34,6 +34,11 @@ public class S3MediaStorage : IMediaStorage
 
     public Task<string> CreateDownloadUrlAsync(string key, TimeSpan expiry, CancellationToken ct = default)
     {
+        // Already an absolute URL (e.g. an externally-hosted product image) — return unchanged.
+        if (key.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+            key.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            return Task.FromResult(key);
+
         var request = new GetPreSignedUrlRequest
         {
             BucketName = _options.Bucket,

@@ -64,7 +64,11 @@ public class PlaylistService : IPlaylistService
     {
         var playlist = await Find(retailerId, playlistId, ct);
 
-        var contentIds = r.Items.Select(i => i.ContentId).Distinct().ToList();
+        // A content item may appear at most once per playlist — de-dupe, keeping first occurrence/order.
+        var seen = new HashSet<long>();
+        var items = r.Items.Where(i => seen.Add(i.ContentId)).ToList();
+
+        var contentIds = items.Select(i => i.ContentId).ToList();
         var validContent = await _db.Contents
             .Where(c => c.RetailerId == retailerId && contentIds.Contains(c.ContentId))
             .Select(c => c.ContentId)
@@ -76,7 +80,7 @@ public class PlaylistService : IPlaylistService
 
         var now = DateTime.UtcNow;
         var order = 0;
-        foreach (var item in r.Items)
+        foreach (var item in items)
         {
             if (!validSet.Contains(item.ContentId))
                 throw AppException.NotFound($"Content {item.ContentId}");

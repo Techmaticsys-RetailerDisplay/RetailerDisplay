@@ -9,6 +9,17 @@ public class Retailer
     public string BusinessName { get; set; } = null!;
     public string? ContactName { get; set; }
     public string? Phone { get; set; }
+
+    // Full profile (filled in by the retailer after first login)
+    public string? AddressLine1 { get; set; }
+    public string? AddressLine2 { get; set; }
+    public string? City { get; set; }
+    public string? State { get; set; }
+    public string? PostalCode { get; set; }
+    public string? Country { get; set; }
+    /// <summary>True once the retailer has filled in the required profile fields.</summary>
+    public bool ProfileCompleted { get; set; }
+
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }

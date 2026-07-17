@@ -2,8 +2,6 @@ namespace RetailerDisplay.Application.Auth;
 
 public record LoginRequest(string Email, string Password);
 
-public record RegisterRequest(string Email, string Password, string BusinessName, string? ContactName, string? Phone);
-
 public record RefreshRequest(string RefreshToken);
 
 public record AuthResponse(
@@ -12,4 +10,27 @@ public record AuthResponse(
     string RefreshToken,
     RetailerProfile Retailer);
 
-public record RetailerProfile(long RetailerId, string Email, string BusinessName, string? ContactName, string? Phone);
+public record RetailerProfile(
+    long RetailerId,
+    string Email,
+    string BusinessName,
+    string? ContactName,
+    string? Phone,
+    string? AddressLine1,
+    string? AddressLine2,
+    string? City,
+    string? State,
+    string? PostalCode,
+    string? Country,
+    bool ProfileCompleted);
+
+public record UpdateProfileRequest(
+    string BusinessName,
+    string? ContactName,
+    string? Phone,
+    string? AddressLine1,
+    string? AddressLine2,
+    string? City,
+    string? State,
+    string? PostalCode,
+    string? Country);

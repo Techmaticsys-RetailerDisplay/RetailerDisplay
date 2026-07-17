@@ -24,6 +24,7 @@ public class RetailerDisplayDbContext : DbContext, IApplicationDbContext
     public DbSet<PlaylistItem> PlaylistItems => Set<PlaylistItem>();
     public DbSet<Device> Devices => Set<Device>();
     public DbSet<DeviceStatusLog> DeviceStatusLogs => Set<DeviceStatusLog>();
+    public DbSet<AdminUser> AdminUsers => Set<AdminUser>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
