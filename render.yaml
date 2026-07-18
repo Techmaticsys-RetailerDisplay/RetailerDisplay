@@ -1,8 +1,5 @@
 services:
   - type: web
     name: retailerdisplay-api
-    runtime: dotnet
+    runtime: docker
     plan: free
-    rootDir: src/RetailerDisplay.Api
-    buildCommand: dotnet publish -c Release -o ./publish
-    startCommand: dotnet ./publish/RetailerDisplay.Api.dll
